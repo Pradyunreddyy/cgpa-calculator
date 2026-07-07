@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CGPA Ledger — Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0e16;
+    --bg-line: rgba(255,255,255,0.025);
+    --surface: #131826;
+    --surface-2: #1a2133;
+    --surface-3: #212a40;
+    --border: #2a3348;
+    --border-soft: rgba(233,228,214,0.08);
+    --text: #ece7da;
+    --text-dim: #939bb0;
+    --text-faint: #5b6478;
+    --gold: #c9a24b;
+    --gold-bright: #e6c775;
+    --gold-dim: rgba(201,162,75,0.14);
+    --sage: #7fae8b;
+    --rust: #c1655d;
+    --font-display: 'Fraunces', serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+    --radius: 10px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body{
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent, transparent 35px,
+      var(--bg-line) 35px, var(--bg-line) 36px
+    );
+    min-height: 100vh;
+  }
+
+  .wrap{
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 56px 24px 120px;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    margin-bottom: 44px;
+    flex-wrap: wrap;
+  }
+
+  .hero-text{ flex: 1 1 380px; min-width: 260px; }
+
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before{
+    content:"";
+    display:inline-block;
+    width: 18px; height: 1px;
+    background: var(--gold);
+  }
+
+  h1{
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 600;
+    font-size: clamp(34px, 5vw, 52px);
+    line-height: 1.05;
+    margin: 0 0 14px;
+    letter-spacing: -0.01em;
+  }
+
+  .hero-sub{
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 46ch;
+    margin: 0 0 26px;
+  }
+
+  .controls-row{
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+
+  .scale-select{
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  .scale-select:focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .toggle{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-track{
+    width: 40px; height: 22px;
+    border-radius: 999px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    position: relative;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    flex-shrink: 0;
+  }
+  .toggle-thumb{
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+  .toggle.on .toggle-track{ background: var(--gold-dim); border-color: var(--gold); }
+  .toggle.on .toggle-thumb{ transform: translateX(18px); background: var(--gold); }
+  .toggle-label{ font-size: 13px; color: var(--text-dim); }
+  .toggle.on .toggle-label{ color: var(--text); }
+
+  /* ---------- Seals ---------- */
+  .seals{
+    display: flex;
+    gap: 22px;
+    flex-shrink: 0;
+  }
+
+  .seal{
+    width: 168px;
+    text-align: center;
+  }
+
+  .seal-ring-wrap{ position: relative; width: 148px; height: 148px; margin: 0 auto; }
+
+  .seal svg{ transform: rotate(-90deg); }
+
+  .seal-bg-ring{ fill: none; stroke: var(--surface-3); stroke-width: 7; }
+  .seal-fg-ring{
+    fill: none; stroke: var(--gold); stroke-width: 7;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+  }
+
+  .seal-center{
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+
+  .seal-value{
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 30px;
+    color: var(--text);
+  }
+  .seal-max{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+
+  .seal-caption{
+    margin-top: 12px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+
+  .seal.projected .seal-fg-ring{ stroke: var(--sage); }
+  .seal.projected .seal-caption{ color: var(--sage); }
+
+  .laurel{
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--gold-bright);
+    letter-spacing: 0.05em;
+    font-style: italic;
+    font-family: var(--font-display);
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+  }
+  .laurel.show{ opacity: 1; height: auto; margin-top: 8px; }
+
+  /* ---------- Ledger sections ---------- */
+  .section-title{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 40px 0 16px;
+  }
+  .section-title h2{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 0;
+    white-space: nowrap;
+  }
+  .section-title .rule{
+    flex: 1;
+    height: 1px;
+    background: var(--border-soft);
+  }
+  .section-title.projected h2{ color: var(--sage); }
+
+  .semesters{ display: flex; flex-direction: column; gap: 18px; }
+
+  .sem-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 20px 22px 22px;
+  }
+  .sem-card.projected{
+    border-left-color: var(--sage);
+    border-style: dashed;
+    border-width: 1px;
+    border-left-width: 3px;
+    background: linear-gradient(180deg, rgba(127,174,139,0.05), transparent 40%);
+  }
+
+  .sem-head{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .sem-tag{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+  .sem-card.projected .sem-tag{ color: var(--sage); }
+
+  .sem-title-input{
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 18px;
+    flex: 1;
+    min-width: 80px;
+    padding: 4px 2px;
+    border-bottom: 1px solid transparent;
+  }
+  .sem-title-input:focus{ outline: none; border-bottom-color: var(--border); }
+
+  .sem-gpa-badge{
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 999px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .sem-gpa-badge b{ color: var(--text); font-weight: 600; }
+
+  .icon-btn{
+    background: transparent;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .icon-btn:hover{ color: var(--rust); background: rgba(193,101,93,0.1); }
+  .icon-btn:focus-visible{ outline: 2px solid var(--gold); outline-offset: 1px; }
+
+  .subj-table{ display: flex; flex-direction: column; gap: 8px; }
+
+  .subj-row{
+    display: grid;
+    grid-template-columns: 1fr 88px 96px 32px;
+    gap: 10px;
+    align-items: center;
+  }
+  .subj-row.header-row{
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 0 2px 2px;
+  }
+
+  .subj-input, .num-input{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    width: 100%;
+  }
+  .num-input{ font-family: var(--font-mono); text-align: right; }
+  .subj-input:focus, .num-input:focus, .grade-select:focus{
+    outline: none; border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-dim);
+  }
+
+  .grade-select{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    text-align: center;
+    text-align-last: center;
+    width: 100%;
+    cursor: pointer;
+  }
+
+  .add-subj-btn{
+    margin-top: 14px;
+    background: none;
+    border: 1px dashed var(--border);
+    color: var(--text-dim);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .add-subj-btn:hover{ border-color: var(--gold); color: var(--gold-bright); }
+
+  .add-sem-btn{
+    background: none;
+    border: 1px dashed var(--border);
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    padding: 16px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  }
+  .add-sem-btn:hover{ border-color: var(--gold); color: var(--gold-bright); background: var(--gold-dim); }
+  .add-sem-btn.projected:hover{ border-color: var(--sage); color: var(--sage); background: rgba(127,174,139,0.1); }
+
+  .empty-note{
+    color: var(--text-faint);
+    font-size: 13px;
+    padding: 4px 2px 4px;
+  }
+
+  .whatif-panel{
+    margin-top: 18px;
+  }
+
+  footer{
+    margin-top: 60px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 640px){
+    .subj-row{ grid-template-columns: 1fr 70px 78px 28px; gap: 6px; }
+    .seals{ width: 100%; justify-content: center; }
+    .hero{ gap: 24px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="hero-text">
+      <p class="eyebrow">Academic Record</p>
+      <h1>CGPA Ledger</h1>
+      <p class="hero-sub">Enter each semester's subjects with credits and grade points to track your running CGPA. Switch on what-if mode to project the CGPA you'd reach with future semesters.</p>
+      <div class="controls-row">
+        <select class="scale-select" id="scaleSelect" aria-label="Grading scale">
+          <option value="10">10-point scale</option>
+          <option value="4">4-point scale</option>
+        </select>
+        <div class="toggle" id="whatIfToggle" role="switch" aria-checked="false" tabindex="0" aria-label="Toggle what-if mode">
+          <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          <span class="toggle-label">What-if mode</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="seals">
+      <div class="seal current">
+        <div class="seal-ring-wrap">
+          <svg width="148" height="148" viewBox="0 0 148 148">
+            <circle class="seal-bg-ring" cx="74" cy="74" r="64"></circle>
+            <circle class="seal-fg-ring" id="ringCurrent" cx="74" cy="74" r="64" stroke-dasharray="402" stroke-dashoffset="402"></circle>
+          </svg>
+          <div class="seal-center">
+            <div class="seal-value" id="valCurrent">0.00</div>
+            <div class="seal-max" id="maxCurrent">/ 10</div>
+          </div>
+        </div>
+        <div class="seal-caption">Current CGPA</div>
+        <div class="laurel" id="laurelCurrent">with distinction</div>
+      </div>
+
+      <div class="seal projected" id="projSeal" style="display:none;">
+        <div class="seal-ring-wrap">
+          <svg width="148" height="148" viewBox="0 0 148 148">
+            <circle class="seal-bg-ring" cx="74" cy="74" r="64"></circle>
+            <circle class="seal-fg-ring" id="ringProjected" cx="74" cy="74" r="64" stroke-dasharray="402" stroke-dashoffset="402"></circle>
+          </svg>
+          <div class="seal-center">
+            <div class="seal-value" id="valProjected">0.00</div>
+            <div class="seal-max" id="maxProjected">/ 10</div>
+          </div>
+        </div>
+        <div class="seal-caption">Projected CGPA</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">
+    <h2>Semesters on record</h2>
+    <div class="rule"></div>
+  </div>
+  <div class="semesters" id="realSemesters"></div>
+  <button class="add-sem-btn" id="addRealSemBtn" style="margin-top:14px; width:100%;">+ Add semester</button>
+
+  <div id="whatIfSection" style="display:none;">
+    <div class="section-title projected">
+      <h2>Projected semesters (what-if)</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="semesters" id="projSemesters"></div>
+    <button class="add-sem-btn projected" id="addProjSemBtn" style="margin-top:14px; width:100%;">+ Add projected semester</button>
+  </div>
+
+  <footer>Grade-point weighted average · updates live</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var state = {
+    scaleMax: 10,
+    whatIfOn: false,
+    real: [],
+    proj: []
+  };
+
+  var uid = 1;
+  function nextId(){ return "id" + (uid++); }
+
+  var GRADE_LETTERS = ["O", "A+", "A", "B+", "B", "C", "D", "F"];
+  var GRADE_POINTS = {
+    10: { "O": 10, "A+": 9, "A": 8, "B+": 7, "B": 6, "C": 5, "D": 4, "F": 0 },
+    4:  { "O": 4.0, "A+": 4.0, "A": 3.7, "B+": 3.3, "B": 3.0, "C": 2.0, "D": 1.0, "F": 0.0 }
+  };
+  function gradeValue(letter){
+    var map = GRADE_POINTS[state.scaleMax] || GRADE_POINTS[10];
+    var v = map[letter];
+    return typeof v === "number" ? v : 0;
+  }
+
+  function makeSubject(name, credits, grade){
+    return { id: nextId(), title: name || "", credits: credits, grade: grade };
+  }
+  function makeSemester(title){
+    return { id: nextId(), title: title, subjects: [ makeSubject("", 3, "A") ] };
+  }
+
+  // seed with one starter semester
+  state.real.push(makeSemester("Semester 1"));
+
+  // ---------- calculations ----------
+  function semesterTotals(sem){
+    var totalCredits = 0, totalPoints = 0;
+    sem.subjects.forEach(function(s){
+      var c = parseFloat(s.credits);
+      if(isNaN(c) || c <= 0) return;
+      var g = gradeValue(s.grade);
+      totalCredits += c;
+      totalPoints += c * g;
+    });
+    return { totalCredits: totalCredits, totalPoints: totalPoints };
+  }
+
+  function semesterGPA(sem){
+    var t = semesterTotals(sem);
+    if(t.totalCredits === 0) return 0;
+    return t.totalPoints / t.totalCredits;
+  }
+
+  function cumulative(list){
+    var totalCredits = 0, totalPoints = 0;
+    list.forEach(function(sem){
+      var t = semesterTotals(sem);
+      totalCredits += t.totalCredits;
+      totalPoints += t.totalPoints;
+    });
+    if(totalCredits === 0) return 0;
+    return totalPoints / totalCredits;
+  }
+
+  function bandColor(value, max){
+    var frac = value / max;
+    if(frac >= 0.8) return getCss('--gold');
+    if(frac >= 0.55) return getCss('--sage');
+    return getCss('--rust');
+  }
+  function getCss(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  var RING_CIRC = 2 * Math.PI * 64;
+
+  function setRing(el, value, max){
+    var frac = Math.max(0, Math.min(1, value / max));
+    var offset = RING_CIRC - frac * RING_CIRC;
+    el.style.strokeDasharray = RING_CIRC.toFixed(1);
+    el.style.strokeDashoffset = offset.toFixed(1);
+  }
+
+  // ---------- rendering (structural) ----------
+  function subjRowHtml(sem, sub, listKey){
+    return (
+      '<div class="subj-row" data-sub-row="' + sub.id + '">' +
+        '<input class="subj-input" type="text" placeholder="Subject name" value="' + escapeAttr(sub.title) + '" ' +
+          'data-field="title" data-list="' + listKey + '" data-sem="' + sem.id + '" data-sub="' + sub.id + '">' +
+        '<input class="num-input" type="number" step="1" min="0" inputmode="numeric" value="' + sub.credits + '" ' +
+          'data-field="credits" data-list="' + listKey + '" data-sem="' + sem.id + '" data-sub="' + sub.id + '" aria-label="Credits">' +
+        '<select class="grade-select" data-field="grade" data-list="' + listKey + '" data-sem="' + sem.id + '" data-sub="' + sub.id + '" aria-label="Grade">' +
+          GRADE_LETTERS.map(function(letter){
+            return '<option value="' + letter + '"' + (sub.grade === letter ? ' selected' : '') + '>' + letter + '</option>';
+          }).join("") +
+        '</select>' +
+        '<button class="icon-btn" title="Remove subject" data-action="remove-subject" data-list="' + listKey + '" data-sem="' + sem.id + '" data-sub="' + sub.id + '">&times;</button>' +
+      '</div>'
+    );
+  }
+
+  function semCardHtml(sem, index, listKey){
+    var isProj = listKey === "proj";
+    var rows = sem.subjects.map(function(s){ return subjRowHtml(sem, s, listKey); }).join("");
+    return (
+      '<div class="sem-card' + (isProj ? ' projected' : '') + '" data-sem-card="' + sem.id + '">' +
+        '<div class="sem-head">' +
+          '<span class="sem-tag">§' + (index + 1) + '</span>' +
+          '<input class="sem-title-input" type="text" value="' + escapeAttr(sem.title) + '" ' +
+            'data-field="semtitle" data-list="' + listKey + '" data-sem="' + sem.id + '">' +
+          '<span class="sem-gpa-badge" id="badge-' + listKey + '-' + sem.id + '">GPA <b>0.00</b></span>' +
+          '<button class="icon-btn" title="Remove semester" data-action="remove-semester" data-list="' + listKey + '" data-sem="' + sem.id + '">&times;</button>' +
+        '</div>' +
+        '<div class="subj-table">' +
+          '<div class="subj-row header-row"><span>Subject</span><span>Credits</span><span>Grade</span><span></span></div>' +
+          rows +
+        '</div>' +
+        '<button class="add-subj-btn" data-action="add-subject" data-list="' + listKey + '" data-sem="' + sem.id + '">+ Add subject</button>' +
+      '</div>'
+    );
+  }
+
+  function escapeAttr(str){
+    return String(str).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  }
+
+  function renderList(listKey){
+    var list = state[listKey];
+    var container = document.getElementById(listKey === "real" ? "realSemesters" : "projSemesters");
+    if(list.length === 0){
+      container.innerHTML = '<p class="empty-note">No semesters yet — add one to begin.</p>';
+      return;
+    }
+    container.innerHTML = list.map(function(sem, i){ return semCardHtml(sem, i, listKey); }).join("");
+  }
+
+  function renderAll(){
+    renderList("real");
+    if(state.whatIfOn){ renderList("proj"); }
+    recomputeDisplays();
+  }
+
+  // ---------- computed-only updates (no rebuild, preserves focus) ----------
+  function recomputeDisplays(){
+    // per-semester badges
+    ["real", "proj"].forEach(function(listKey){
+      state[listKey].forEach(function(sem){
+        var badge = document.getElementById("badge-" + listKey + "-" + sem.id);
+        if(!badge) return;
+        var gpa = semesterGPA(sem);
+        badge.innerHTML = "GPA <b>" + gpa.toFixed(2) + "</b>";
+      });
+    });
+
+    var max = state.scaleMax;
+
+    // current CGPA seal
+    var curCgpa = cumulative(state.real);
+    document.getElementById("valCurrent").textContent = curCgpa.toFixed(2);
+    document.getElementById("maxCurrent").textContent = "/ " + max;
+    var ringCur = document.getElementById("ringCurrent");
+    setRing(ringCur, curCgpa, max);
+    ringCur.style.stroke = bandColor(curCgpa, max);
+    var laurel = document.getElementById("laurelCurrent");
+    if(max === 10 ? curCgpa >= 9 : curCgpa >= 3.6){ laurel.classList.add("show"); }
+    else { laurel.classList.remove("show"); }
+
+    // projected CGPA seal
+    if(state.whatIfOn){
+      var combined = state.real.concat(state.proj);
+      var projCgpa = cumulative(combined);
+      document.getElementById("valProjected").textContent = projCgpa.toFixed(2);
+      document.getElementById("maxProjected").textContent = "/ " + max;
+      var ringProj = document.getElementById("ringProjected");
+      setRing(ringProj, projCgpa, max);
+    }
+  }
+
+  // ---------- event handling ----------
+  function handleFieldEvent(e){
+    var t = e.target;
+    if(!t.dataset) return;
+
+    if(t.dataset.field){
+      var sem = findSem(t.dataset.list, t.dataset.sem);
+      if(!sem) return;
+
+      if(t.dataset.field === "semtitle"){
+        sem.title = t.value;
+        return; // no recompute needed
+      }
+      var sub = sem.subjects.find(function(s){ return s.id === t.dataset.sub; });
+      if(!sub) return;
+
+      if(t.dataset.field === "title"){
+        sub.title = t.value;
+        return;
+      }
+      if(t.dataset.field === "credits"){
+        // integer only
+        var iv = Math.floor(Math.abs(parseFloat(t.value) || 0));
+        sub.credits = iv;
+        recomputeDisplays();
+        return;
+      }
+      if(t.dataset.field === "grade"){
+        sub.grade = t.value;
+        recomputeDisplays();
+        return;
+      }
+    }
+  }
+  document.addEventListener("input", handleFieldEvent);
+  document.addEventListener("change", handleFieldEvent);
+
+  document.addEventListener("click", function(e){
+    var btn = e.target.closest("[data-action]");
+    if(btn){
+      var action = btn.dataset.action;
+      var listKey = btn.dataset.list;
+
+      if(action === "add-subject"){
+        var sem = findSem(listKey, btn.dataset.sem);
+        if(sem) sem.subjects.push(makeSubject("", 3, 0));
+        renderList(listKey);
+        recomputeDisplays();
+        return;
+      }
+      if(action === "remove-subject"){
+        var sem2 = findSem(listKey, btn.dataset.sem);
+        if(sem2){
+          sem2.subjects = sem2.subjects.filter(function(s){ return s.id !== btn.dataset.sub; });
+          if(sem2.subjects.length === 0){ sem2.subjects.push(makeSubject("", 3, 0)); }
+        }
+        renderList(listKey);
+        recomputeDisplays();
+        return;
+      }
+      if(action === "remove-semester"){
+        state[listKey] = state[listKey].filter(function(s){ return s.id !== btn.dataset.sem; });
+        renderList(listKey);
+        recomputeDisplays();
+        return;
+      }
+    }
+
+    if(e.target.id === "addRealSemBtn"){
+      state.real.push(makeSemester("Semester " + (state.real.length + 1)));
+      renderList("real");
+      recomputeDisplays();
+      return;
+    }
+    if(e.target.id === "addProjSemBtn"){
+      state.proj.push(makeSemester("Future " + (state.proj.length + 1)));
+      renderList("proj");
+      recomputeDisplays();
+      return;
+    }
+  });
+
+  function findSem(listKey, id){
+    return state[listKey].find(function(s){ return s.id === id; });
+  }
+
+  // ---------- scale + what-if controls ----------
+  var scaleSelect = document.getElementById("scaleSelect");
+  scaleSelect.addEventListener("change", function(){
+    state.scaleMax = parseFloat(scaleSelect.value);
+    recomputeDisplays();
+  });
+
+  var whatIfToggle = document.getElementById("whatIfToggle");
+  function setWhatIf(on){
+    state.whatIfOn = on;
+    whatIfToggle.classList.toggle("on", on);
+    whatIfToggle.setAttribute("aria-checked", on ? "true" : "false");
+    document.getElementById("whatIfSection").style.display = on ? "" : "none";
+    document.getElementById("projSeal").style.display = on ? "" : "none";
+    if(on && state.proj.length === 0){
+      state.proj.push(makeSemester("Future 1"));
+    }
+    renderAll();
+  }
+  whatIfToggle.addEventListener("click", function(){ setWhatIf(!state.whatIfOn); });
+  whatIfToggle.addEventListener("keydown", function(e){
+    if(e.key === "Enter" || e.key === " "){ e.preventDefault(); setWhatIf(!state.whatIfOn); }
+  });
+
+  // ---------- init ----------
+  renderAll();
+})();
+</script>
+</body>
+</html>
